@@ -46,6 +46,10 @@ The offline logic is in `src/sw/worker.js` (tested in `worker.test.ts`); the bui
 
 It is a static site (Vite + vanilla TypeScript) with no environment variables or secrets, hosted on Vercel.
 
+## Build your own version
+
+Ideas on Somebody Build This never lock. This is just one take on [the idea](https://somebodybuildthis.dev/ideas/20-a-random-interval-workout-timer-you-can-load-with-your-own-e), and anyone is welcome to build their own version and ship it there too.
+
 ## License
 
 MIT
