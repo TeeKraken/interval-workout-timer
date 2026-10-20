@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Shuffle Timer: random-interval workouts</title>
+    <meta name="description" content="A random-interval workout timer. Type in your own exercises, pick how long work and rest can be, and let it surprise you. Works offline. No account." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161a" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <main id="main">
+      <!-- Setup -->
+      <section id="setup" aria-labelledby="setup-title">
+        <header class="brand">
+          <h1 id="setup-title">Shuffle Timer</h1>
+          <p class="lede">Your exercises, random lengths, no planning. Press start and follow the beeps.</p>
+        </header>
+
+        <form id="setup-form" novalidate>
+          <div class="field">
+            <label for="exercises">Your exercises</label>
+            <p class="hint" id="exercises-hint">One per line. The timer picks one at random each round.</p>
+            <textarea id="exercises" rows="5" aria-describedby="exercises-hint exercises-error" autocomplete="off" spellcheck="true"></textarea>
+            <p class="error" id="exercises-error" role="alert"></p>
+            <div class="lists" id="lists" aria-label="Saved lists"></div>
+            <div class="save-row">
+              <label for="list-name" class="visually-hidden">Name for this list</label>
+              <input id="list-name" type="text" placeholder="Name this list" maxlength="40" autocomplete="off" />
+              <button type="button" id="save-list" class="btn btn-quiet">Save list</button>
+            </div>
+            <p class="status" id="list-status" role="status"></p>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label for="work">Work lengths</label>
+              <p class="hint" id="work-hint">Seconds. A list like <code>30, 45, 60</code> or a range like <code>20-90</code>.</p>
+              <input id="work" type="text" inputmode="text" aria-describedby="work-hint work-error" autocomplete="off" />
+              <p class="error" id="work-error" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="rest">Rest lengths</label>
+              <p class="hint" id="rest-hint">Same idea. Use <code>0</code> to skip rests.</p>
+              <input id="rest" type="text" aria-describedby="rest-hint rest-error" autocomplete="off" />
+              <p class="error" id="rest-error" role="alert"></p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="rounds">Rounds</label>
+            <div class="stepper">
+              <button type="button" class="btn btn-quiet step" data-step="-1" aria-label="One fewer round">−</button>
+              <input id="rounds" type="number" inputmode="numeric" min="1" max="99" aria-describedby="rounds-error estimate" />
+              <button type="button" class="btn btn-quiet step" data-step="1" aria-label="One more round">+</button>
+              <p class="estimate" id="estimate" aria-live="polite"></p>
+            </div>
+            <p class="error" id="rounds-error" role="alert"></p>
+          </div>
+
+          <fieldset class="toggles">
+            <legend>Cues</legend>
+            <label class="check"><input type="checkbox" id="sound" /> Beeps</label>
+            <label class="check" id="vibrate-wrap" hidden><input type="checkbox" id="vibrate" /> Vibrate</label>
+            <label class="check"><input type="checkbox" id="ready" /> 5-second get ready</label>
+          </fieldset>
+
+          <button type="submit" class="btn btn-go" id="start">Start workout</button>
+        </form>
+
+        <footer class="foot">
+          <p>Saved on this device only. No account, no tracking.</p>
+          <p>
+            <a href="https://somebodybuildthis.dev/ideas/20-a-random-interval-workout-timer-you-can-load-with-your-own-e">Built from an idea on Somebody Build This</a>
+            · <a href="https://github.com/TeeKraken/interval-workout-timer">Open source</a> (AI-generated)
+          </p>
+        </footer>
+      </section>
+
+      <!-- Workout -->
+      <section id="session" hidden aria-labelledby="phase" data-kind="ready">
+        <div class="session-top">
+          <p class="round" id="round"></p>
+          <button type="button" class="btn btn-quiet btn-small" id="mute" aria-pressed="false">Sound on</button>
+        </div>
+        <div class="display">
+          <p class="phase" id="phase">Get ready</p>
+          <h2 class="exercise" id="exercise"></h2>
+          <p class="clock" id="clock" aria-hidden="true">0:00</p>
+          <div class="bar" aria-hidden="true"><div class="bar-fill" id="bar"></div></div>
+          <p class="next" id="next"></p>
+        </div>
+        <p class="visually-hidden" id="announce" aria-live="assertive" aria-atomic="true"></p>
+        <div class="controls">
+          <button type="button" class="btn btn-go" id="pause">Pause</button>
+          <button type="button" class="btn btn-quiet" id="skip">Skip</button>
+          <button type="button" class="btn btn-quiet" id="stop">End</button>
+        </div>
+        <p class="keys">Keys: Space pause · N skip · Esc end</p>
+      </section>
+
+      <!-- Done -->
+      <section id="done" hidden aria-labelledby="done-title">
+        <div class="done-card">
+          <p class="phase">Finished</p>
+          <h2 id="done-title" tabindex="-1">Nice work.</h2>
+          <p id="done-summary"></p>
+          <ol id="done-log" class="log"></ol>
+          <div class="controls">
+            <button type="button" class="btn btn-go" id="again">Go again</button>
+            <button type="button" class="btn btn-quiet" id="edit">Change settings</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <div class="flash" id="flash" aria-hidden="true"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
