@@ -1,59 +1,43 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 
+const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+
 /**
- * Writes dist/sw.js with the exact list of built files, so the whole app is cached
- * on first visit and keeps working offline. Hand-rolled to avoid a plugin dependency.
+ * Writes dist/sw.js: the worker logic from src/sw/worker.js plus the exact list of
+ * built files, so the whole app is cached on first visit and keeps working offline.
+ * The cache name is a hash of every cached file's contents, so changing anything
+ * (even an icon) ships a new cache. Hand-rolled to avoid a plugin dependency.
  */
 function serviceWorker(): Plugin {
+  const publicFiles = ["manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
   return {
     name: "shuffle-timer-sw",
     apply: "build",
     generateBundle(_options, bundle) {
-      const files = ["/", ...Object.keys(bundle).map((f) => `/${f}`)].filter(
-        (f) => f !== "/index.html",
-      );
-      const staticFiles = ["/manifest.webmanifest", "/icon.svg", "/icon-192.png", "/icon-512.png"];
-      const precache = [...new Set([...files, ...staticFiles])];
-      const version = createHash("sha256")
-        .update(JSON.stringify(precache))
-        .digest("hex")
-        .slice(0, 12);
-      const source = `// Generated at build time. Caches the app so it works offline.
-const CACHE = "shuffle-timer-${version}";
-const PRECACHE = ${JSON.stringify(precache)};
+      const hash = createHash("sha256");
+      const built = Object.keys(bundle).sort();
+      for (const name of built) {
+        const item = bundle[name];
+        hash.update(name);
+        hash.update(item.type === "chunk" ? item.code : item.source);
+      }
+      for (const name of publicFiles) {
+        hash.update(name);
+        hash.update(readFileSync(here(`public/${name}`)));
+      }
+      const workerSource = readFileSync(here("src/sw/worker.js"), "utf8").replace(/^export /gm, "");
+      hash.update(workerSource);
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
-  if (req.mode === "navigate") {
-    // Fresh page when online, cached page when offline.
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("/", copy));
-          return res;
-        })
-        .catch(() => caches.match("/")),
-    );
-    return;
-  }
-  event.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
-});
-`;
+      const precache = [
+        "/",
+        ...built.filter((f) => f !== "index.html").map((f) => `/${f}`),
+        ...publicFiles.map((f) => `/${f}`),
+      ];
+      const config = { cacheName: `shuffle-timer-${hash.digest("hex").slice(0, 12)}`, precache };
+      const source = `// Generated at build time from src/sw/worker.js.\n${workerSource}\nregisterWorker(self, ${JSON.stringify(config)});\n`;
       this.emitFile({ type: "asset", fileName: "sw.js", source });
     },
   };

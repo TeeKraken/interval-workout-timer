@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { durationBounds, formatClock, parseDurations, parseTime, pickDuration } from "./durations";
+import { durationBounds, formatClock, parseDurations, parseTime, pickDuration, spokenDuration } from "./durations";
 import { mulberry32 } from "./rng";
 
 describe("parseTime", () => {
@@ -99,5 +99,19 @@ describe("helpers", () => {
     expect(formatClock(9)).toBe("0:09");
     expect(formatClock(75)).toBe("1:15");
     expect(formatClock(600)).toBe("10:00");
+  });
+});
+
+describe("spokenDuration", () => {
+  it.each([
+    [0, "0 seconds"],
+    [1, "1 second"],
+    [45, "45 seconds"],
+    [60, "1 minute"],
+    [61, "1 minute 1 second"],
+    [600, "10 minutes"],
+    [125, "2 minutes 5 seconds"],
+  ])("says %i as %s", (n, out) => {
+    expect(spokenDuration(n)).toBe(out);
   });
 });

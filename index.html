@@ -91,7 +91,7 @@
         <div class="display">
           <p class="phase" id="phase">Get ready</p>
           <h2 class="exercise" id="exercise"></h2>
-          <p class="clock" id="clock" aria-hidden="true">0:00</p>
+          <p class="clock" id="clock" role="timer" aria-live="off" aria-atomic="true">0:00</p>
           <div class="bar" aria-hidden="true"><div class="bar-fill" id="bar"></div></div>
           <p class="next" id="next"></p>
         </div>
@@ -109,6 +109,7 @@
         <div class="done-card">
           <p class="phase">Finished</p>
           <h2 id="done-title" tabindex="-1">Nice work.</h2>
+          <p class="hint" id="done-note" hidden>Skipped rounds show the time you actually did.</p>
           <p id="done-summary"></p>
           <ol id="done-log" class="log"></ol>
           <div class="controls">

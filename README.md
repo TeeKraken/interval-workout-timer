@@ -4,23 +4,24 @@
 
 # Shuffle Timer
 
-A random-interval workout timer you load with your own exercises. Type in what you want to do (jog, walk, sprint, or anything else), say how long work and rest can be, and the timer picks each round for you. No planning, and no two workouts the same.
+A random-interval workout timer you load with your own exercises. Type in what you want to do (jog, walk, sprint, or anything else), say how long work and rest can be, and the timer picks each round for you. No planning: every start gives you a freshly randomized workout.
 
 **Use it:** https://interval-workout-timer-gilt.vercel.app
 
 ## What it does
 
-- **Your own exercises.** One per line. Each round picks one at random, and never the same one twice in a row.
+- **Your own exercises.** One per line. Each round picks one at random, and avoids repeating the same one twice in a row when there is a choice.
 - **Random lengths.** Give a list (`30, 45, 60`), a range (`20-90`), or a mix. `1:30` and `2m` work too. Rest works the same way; use `0` to skip rests.
 - **Rounds and an estimate.** Pick how many rounds and see roughly how long the workout will take.
 - **Saved lists.** Save exercise lists by name and switch between them with one tap.
 - **Hard to miss cues.** A big countdown, the color changes between work (orange) and rest (green), beeps for the last 3 seconds and at each switch, and vibration on phones that support it.
+- **An honest summary.** The finish screen shows the time you actually did, and marks rounds you skipped.
 - **Start, pause, skip, end.** Keyboard too: Space pauses, N skips, Esc ends.
 - **Keeps the screen on** during a workout, where the browser allows it.
 - **Works offline.** Install it to your home screen and use it with no signal.
 - **Private.** Everything is saved on your device only. No account, no tracking, no analytics, no third-party scripts.
 
-Works on phones from 375px wide, follows your system's light or dark mode, respects "reduce motion", and announces each new round to screen readers.
+Works on phones from 375px wide, follows your system's light or dark mode, and respects "reduce motion". Screen readers hear each new round, can read the time left at any point, and hear it on pause.
 
 ## Develop
 
@@ -39,7 +40,9 @@ The interesting logic is small and pure, in `src/logic/`:
 - `rng.ts` is a seedable random number generator (mulberry32), so plans are testable.
 - `durations.ts` parses what people type into the length boxes and picks a length.
 - `plan.ts` builds the whole workout up front from the settings.
-- `timer.ts` is a timestamp-based state machine (start, tick, pause, resume, skip), so the clock stays accurate even when the browser slows down background tabs.
+- `timer.ts` is a timestamp-based state machine (start, tick, pause, resume, skip), so the clock stays accurate even when the browser slows down background tabs. It records the time actually spent in each segment.
+
+The offline logic is in `src/sw/worker.js` (tested in `worker.test.ts`); the build inlines it into `/sw.js` with the list of files to cache.
 
 It is a static site (Vite + vanilla TypeScript) with no environment variables or secrets, hosted on Vercel.
 

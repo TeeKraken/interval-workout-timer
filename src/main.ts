@@ -1,7 +1,7 @@
 import "./style.css";
 import { beep, buzz, canVibrate, keepAwake, unlockAudio, type Cue } from "./cues";
-import { durationBounds, formatClock, parseDurations, type DurationOption } from "./logic/durations";
-import { buildPlan, totalSeconds, type Segment } from "./logic/plan";
+import { durationBounds, formatClock, parseDurations, spokenDuration, type DurationOption } from "./logic/durations";
+import { buildPlan, type Segment } from "./logic/plan";
 import { mulberry32, randomSeed } from "./logic/rng";
 import {
   pauseTimer,
@@ -9,6 +9,7 @@ import {
   secondsLeft,
   skipSegment,
   startTimer,
+  summarize,
   tick,
   type TimerState,
 } from "./logic/timer";
@@ -144,6 +145,7 @@ function renderLists(): void {
     loadBtn.type = "button";
     loadBtn.className = "chip-load";
     loadBtn.textContent = list.name;
+    loadBtn.title = list.name;
     loadBtn.setAttribute("aria-label", `Use list ${list.name}`);
     loadBtn.addEventListener("click", () => {
       inputs.exercises.value = list.exercises.join("\n");
@@ -222,6 +224,7 @@ document.querySelectorAll<HTMLButtonElement>(".step").forEach((b) =>
 // ---------- Workout ----------
 
 let state: TimerState | null = null;
+let endArmed = 0;
 let loop = 0;
 let lastIndex = -1;
 let lastTickSecond = -1;
@@ -255,6 +258,7 @@ function startWorkout(v: Valid): void {
   lastIndex = -1;
   lastTickSecond = -1;
   $("pause").textContent = "Pause";
+  disarmEnd();
   show("session");
   updateMute();
   void keepAwake(true);
@@ -309,7 +313,14 @@ function frame(): void {
     cue("tick");
   }
 
-  $("clock").textContent = seg.seconds >= 60 ? formatClock(left) : String(left);
+  const clockText = seg.seconds >= 60 ? formatClock(left) : String(left);
+  const clock = $("clock");
+  if (clock.textContent !== clockText) {
+    clock.textContent = clockText;
+    clock.dataset.len = String(clockText.length);
+    // Readable on demand (role="timer" is not live), so it isn't spoken every second.
+    clock.setAttribute("aria-label", `${spokenDuration(left)} left`);
+  }
   session.classList.toggle("final", left <= 3);
   session.classList.toggle("paused", state.status === "paused");
   const elapsed = 1 - (state.status === "running" ? state.endsAt - now : state.remainingMs) / (seg.seconds * 1000);
@@ -319,23 +330,29 @@ function frame(): void {
 function finish(): void {
   if (!state) return;
   clearInterval(loop);
-  const plan = state.plan;
+  const result = summarize(state);
   state = null;
   void keepAwake(false);
   cue("done");
-  const work = plan.filter((s) => s.kind === "work");
-  $("done-summary").textContent = `${work.length} ${work.length === 1 ? "round" : "rounds"}, ${formatClock(
-    totalSeconds(plan.filter((s) => s.kind !== "ready")),
-  )} total.`;
+  const n = result.rounds.length;
+  const parts = [`${n} ${n === 1 ? "round" : "rounds"}`, `${formatClock(result.activeSeconds)} of work and rest`];
+  if (result.skippedRounds > 0) {
+    parts.push(`${result.skippedRounds} skipped (planned ${formatClock(result.plannedSeconds)})`);
+  }
+  $("done-summary").textContent = parts.join(", ") + ".";
+  $("done-title").textContent = n > 0 && result.skippedRounds === n ? "Workout over." : "Nice work.";
+  $("done-note").hidden = result.skippedRounds === 0;
   const log = $("done-log");
   log.replaceChildren(
-    ...work.map((w) => {
+    ...result.rounds.map((r) => {
       const li = document.createElement("li");
       const name = document.createElement("span");
-      name.textContent = w.exercise!;
+      name.textContent = r.skipped ? `${r.exercise} (skipped)` : r.exercise;
       const t = document.createElement("span");
-      t.className = "mono";
-      t.textContent = formatClock(w.seconds);
+      t.className = "mono time";
+      t.textContent = r.skipped
+        ? `${formatClock(r.doneSeconds)} of ${formatClock(r.plannedSeconds)}`
+        : formatClock(r.doneSeconds);
       li.append(name, t);
       return li;
     }),
@@ -351,7 +368,8 @@ function togglePause(): void {
   state = state.status === "paused" ? resumeTimer(state, now) : pauseTimer(state, now);
   const paused = state.status === "paused";
   $("pause").textContent = paused ? "Resume" : "Pause";
-  $("announce").textContent = paused ? "Paused." : "Resumed.";
+  const left = spokenDuration(secondsLeft(state, now));
+  $("announce").textContent = paused ? `Paused with ${left} left.` : `Resumed. ${left} left.`;
   void keepAwake(!paused);
   frame();
 }
@@ -362,7 +380,12 @@ function skip(): void {
   frame();
 }
 
-let endArmed = 0;
+function disarmEnd(): void {
+  clearTimeout(endArmed);
+  endArmed = 0;
+  $("stop").textContent = "End";
+}
+
 function end(): void {
   const btn = $("stop");
   if (!endArmed) {
@@ -373,9 +396,7 @@ function end(): void {
     }, 3000);
     return;
   }
-  clearTimeout(endArmed);
-  endArmed = 0;
-  btn.textContent = "End";
+  disarmEnd();
   clearInterval(loop);
   state = null;
   void keepAwake(false);

@@ -83,3 +83,14 @@ export function formatClock(totalSeconds: number): string {
   const m = Math.floor(s / 60);
   return `${m}:${String(s % 60).padStart(2, "0")}`;
 }
+
+/** 75 -> "1 minute 15 seconds", for screen readers. */
+export function spokenDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  const part = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
+  if (m === 0) return part(r, "second");
+  if (r === 0) return part(m, "minute");
+  return `${part(m, "minute")} ${part(r, "second")}`;
+}
