@@ -19,7 +19,7 @@ A random-interval workout timer you load with your own exercises. Type in what y
 - **Start, pause, skip, end.** Keyboard too: Space pauses, N skips, Esc ends.
 - **Keeps the screen on** during a workout, where the browser allows it.
 - **Works offline.** Install it to your home screen and use it with no signal.
-- **Private.** Everything is saved on your device only. No account, no tracking, no analytics, no third-party scripts.
+- **Private.** Everything is saved on your device only. No account, no cookies, no analytics scripts, no third-party scripts, and no tracking by the app. Like any website's host, Vercel keeps request logs that can include IP addresses and referring sites. We only look at weekly totals of requests to load the app, grouped by referring site, to see whether people find it; these count requests, not people. We don't look at individual requests.
 
 Works on phones from 375px wide, follows your system's light or dark mode, and respects "reduce motion". Screen readers hear each new round, can read the time left at any point, and hear it on pause.
 
