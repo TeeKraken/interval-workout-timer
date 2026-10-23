@@ -46,6 +46,12 @@ The offline logic is in `src/sw/worker.js` (tested in `worker.test.ts`); the bui
 
 It is a static site (Vite + vanilla TypeScript) with no environment variables or secrets, hosted on Vercel.
 
+## Maintenance
+
+This app is looked after, not left behind. Dependabot proposes dependency updates. The Somebody Build This steward checks on the app each month and reviews security alerts in a weekly security check. Updates go through review and automated checks before they are merged.
+
+Found a problem? [Open an issue](https://github.com/TeeKraken/interval-workout-timer/issues) on this repository and describe what happened.
+
 ## Build your own version
 
 Ideas on Somebody Build This never lock. This is just one take on [the idea](https://somebodybuildthis.dev/ideas/20-a-random-interval-workout-timer-you-can-load-with-your-own-e), and anyone is welcome to build their own version and ship it there too.
