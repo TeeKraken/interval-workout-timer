@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://interval-workout-timer-gilt.vercel.app/sitemap.xml
